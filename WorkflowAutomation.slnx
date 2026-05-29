@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/WorkflowAutomation.Api/WorkflowAutomation.Api.csproj" />
+  </Folder>
+</Solution>
