@@ -11,7 +11,7 @@ public record ConnectionDto(
 public interface IConnectionsService
 {
     string BuildAuthorizeUrl(Guid userId, Provider provider, string redirectUri);
-    Task<Provider?> HandleCallbackAsync(string code, string state, string redirectUri, CancellationToken ct);
+    Task<Provider?> HandleCallbackAsync(string code, string state, string redirectUri, IReadOnlyDictionary<string, string?> callbackParams, CancellationToken ct);
     Task<IReadOnlyList<ConnectionDto>> ListAsync(Guid userId, CancellationToken ct);
     Task<ConnectionDto?> GetAsync(Guid userId, Guid id, CancellationToken ct);
     Task<bool> DisconnectAsync(Guid userId, Guid id, CancellationToken ct);
@@ -25,12 +25,12 @@ public class ConnectionsService(AppDbContext db, IOAuthProviderResolver resolver
         return resolver.Get(provider).BuildAuthorizeUrl(state, redirectUri);
     }
 
-    public async Task<Provider?> HandleCallbackAsync(string code, string state, string redirectUri, CancellationToken ct)
+    public async Task<Provider?> HandleCallbackAsync(string code, string state, string redirectUri, IReadOnlyDictionary<string, string?> callbackParams, CancellationToken ct)
     {
         var validated = stateService.Validate(state);
         if (validated is null) return null;
 
-        var result = await resolver.Get(validated.Provider).ExchangeCodeAsync(code, redirectUri, ct);
+        var result = await resolver.Get(validated.Provider).ExchangeCodeAsync(code, redirectUri, callbackParams, ct);
 
         var conn = await db.Connections
             .Include(c => c.Token)
@@ -95,8 +95,7 @@ public class ConnectionsService(AppDbContext db, IOAuthProviderResolver resolver
         return true;
     }
 
-    private async Task SetDependentAutomationsEnabledAsync(
-        Guid userId, Guid connectionId, bool enabled, CancellationToken ct)
+    private async Task SetDependentAutomationsEnabledAsync(Guid userId, Guid connectionId, bool enabled, CancellationToken ct)
     {
         var dependents = await db.Automations
             .Where(a => a.UserId == userId && (a.TriggerConnectionId == connectionId || a.ActionConnectionId == connectionId))

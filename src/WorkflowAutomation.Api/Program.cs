@@ -53,8 +53,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 builder.Services.Configure<SlackOptions>(builder.Configuration.GetSection(SlackOptions.SectionName));
+builder.Services.Configure<QboOptions>(builder.Configuration.GetSection(QboOptions.SectionName));
+builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection(GoogleOptions.SectionName));
 
 builder.Services.AddHttpClient<IOAuthProvider, SlackOAuthProvider>();
+builder.Services.AddHttpClient<IOAuthProvider, QboOAuthProvider>();
+builder.Services.AddHttpClient<IOAuthProvider, GoogleOAuthProvider>();
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IOAuthProviderResolver, OAuthProviderResolver>();

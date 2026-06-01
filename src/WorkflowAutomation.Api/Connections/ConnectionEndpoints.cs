@@ -35,21 +35,25 @@ public static class ConnectionEndpoints
         return Results.Ok(new { authorizeUrl = url });
     }
 
-    private static async Task<IResult> Callback(string provider, string? code, string? state,
-        IConnectionsService svc, IConfiguration config, HttpRequest req, CancellationToken ct)
+    private static async Task<IResult> Callback(string provider, IConnectionsService svc, IConfiguration config, HttpRequest req, CancellationToken ct)
     {
         var frontend = config["Frontend:BaseUrl"] ?? "https://localhost:4200";
-        if (!Enum.TryParse<Provider>(provider, true, out var p) || code is null || state is null)
+        var code = req.Query["code"].ToString();
+        var state = req.Query["state"].ToString();
+
+        if (!Enum.TryParse<Provider>(provider, true, out var p) || string.IsNullOrEmpty(code) || string.IsNullOrEmpty(state))
             return Results.Redirect($"{frontend}/connections?status=error");
 
-        var result = await svc.HandleCallbackAsync(code, state, RedirectUri(req, p), ct);
+        var callbackParams = req.Query.ToDictionary(q => q.Key, q => (string?)q.Value.ToString());
+        var result = await svc.HandleCallbackAsync(code, state, RedirectUri(req, p), callbackParams, ct);
         var status = result is null ? "error" : "connected";
         return Results.Redirect($"{frontend}/connections?status={status}&provider={p.ToString().ToLowerInvariant()}");
     }
 
-    private static async Task<IResult> Disconnect(Guid id, ClaimsPrincipal user, IConnectionsService svc, CancellationToken ct) => await svc.DisconnectAsync(user.GetUserId(), id, ct)
-        ? Results.NoContent()
-        : Results.NotFound();
+    private static async Task<IResult> Disconnect(Guid id, ClaimsPrincipal user, IConnectionsService svc, CancellationToken ct) =>
+        await svc.DisconnectAsync(user.GetUserId(), id, ct)
+            ? Results.NoContent()
+            : Results.NotFound();
 
     private static string RedirectUri(HttpRequest req, Provider provider) => $"{req.Scheme}://{req.Host}/api/connections/{provider.ToString().ToLowerInvariant()}/callback";
 }

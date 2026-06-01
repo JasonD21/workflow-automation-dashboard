@@ -24,7 +24,7 @@ public class SlackOAuthProvider(IOptions<SlackOptions> options, HttpClient http)
         return QueryHelpers.AddQueryString("https://slack.com/oauth/v2/authorize", query);
     }
 
-    public async Task<OAuthTokenResult> ExchangeCodeAsync(string code, string redirectUri, CancellationToken ct = default)
+    public async Task<OAuthTokenResult> ExchangeCodeAsync(string code, string redirectUri, IReadOnlyDictionary<string, string?> callbackParams, CancellationToken ct = default)
     {
         var form = new Dictionary<string, string>
         {

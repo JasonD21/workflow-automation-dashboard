@@ -14,5 +14,5 @@ public interface IOAuthProvider
 {
     Provider Provider { get; }
     string BuildAuthorizeUrl(string state, string redirectUri);
-    Task<OAuthTokenResult> ExchangeCodeAsync(string code, string redirectUri, CancellationToken ct = default);
+    Task<OAuthTokenResult> ExchangeCodeAsync(string code, string redirectUri, IReadOnlyDictionary<string, string?> callbackParams, CancellationToken ct = default);
 }
