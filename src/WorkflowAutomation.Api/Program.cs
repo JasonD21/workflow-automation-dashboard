@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
+using WorkflowAutomation.Api.Connections;
+using WorkflowAutomation.Api.Connections.Providers;
 using WorkflowAutomation.Api.Identity;
 using WorkflowAutomation.Api.Infrastructure;
 using WorkflowAutomation.Api.Infrastructure.Persistence;
@@ -50,7 +52,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+builder.Services.Configure<SlackOptions>(builder.Configuration.GetSection(SlackOptions.SectionName));
+
+builder.Services.AddHttpClient<IOAuthProvider, SlackOAuthProvider>();
+
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IOAuthProviderResolver, OAuthProviderResolver>();
+builder.Services.AddScoped<IConnectionsService, ConnectionsService>();
+
+builder.Services.AddSingleton<ITokenProtector, TokenProtector>();
+builder.Services.AddSingleton<IOAuthStateService, OAuthStateService>();
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+});
 
 var app = builder.Build();
 
@@ -70,6 +86,7 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapAuthEndpoints();
+app.MapConnectionEndpoints();
 
 app.MapHealthChecks("/health");
 app.MapHangfireDashboard("/hangfire", new DashboardOptions  // localhost-only by default; we secure it for prod in the Auth chunk
