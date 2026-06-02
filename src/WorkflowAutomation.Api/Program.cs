@@ -7,10 +7,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
+using WorkflowAutomation.Api.Automations;
+using WorkflowAutomation.Api.Automations.Execution;
 using WorkflowAutomation.Api.Connections;
 using WorkflowAutomation.Api.Connections.Providers;
 using WorkflowAutomation.Api.Identity;
 using WorkflowAutomation.Api.Infrastructure;
+using WorkflowAutomation.Api.Infrastructure.Email;
 using WorkflowAutomation.Api.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -55,17 +58,27 @@ builder.Services.AddAuthorization();
 builder.Services.Configure<SlackOptions>(builder.Configuration.GetSection(SlackOptions.SectionName));
 builder.Services.Configure<QboOptions>(builder.Configuration.GetSection(QboOptions.SectionName));
 builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection(GoogleOptions.SectionName));
+builder.Services.Configure<ResendOptions>(builder.Configuration.GetSection(ResendOptions.SectionName));
 
 builder.Services.AddHttpClient<IOAuthProvider, SlackOAuthProvider>();
 builder.Services.AddHttpClient<IOAuthProvider, QboOAuthProvider>();
 builder.Services.AddHttpClient<IOAuthProvider, GoogleOAuthProvider>();
+builder.Services.AddHttpClient<IActionExecutor, SlackPostMessageExecutor>();
+builder.Services.AddHttpClient<IEmailSender, ResendEmailSender>();
+builder.Services.AddHttpClient<IActionExecutor, GoogleCreateEventExecutor>();
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IOAuthProviderResolver, OAuthProviderResolver>();
 builder.Services.AddScoped<IConnectionsService, ConnectionsService>();
+builder.Services.AddScoped<IAutomationsService, AutomationsService>();
+builder.Services.AddScoped<IActionExecutorResolver, ActionExecutorResolver>();
+builder.Services.AddScoped<IConnectionTokenAccessor, ConnectionTokenAccessor>();
+builder.Services.AddScoped<IAutomationRunner, AutomationRunner>();
+builder.Services.AddScoped<IActionExecutor, EmailSendExecutor>();
 
 builder.Services.AddSingleton<ITokenProtector, TokenProtector>();
 builder.Services.AddSingleton<IOAuthStateService, OAuthStateService>();
+builder.Services.AddSingleton<ITemplateRenderer, TemplateRenderer>();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -91,6 +104,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapAuthEndpoints();
 app.MapConnectionEndpoints();
+app.MapCatalogEndpoints();
+app.MapAutomationEndpoints();
+app.MapRunEndpoints();
 
 app.MapHealthChecks("/health");
 app.MapHangfireDashboard("/hangfire", new DashboardOptions  // localhost-only by default; we secure it for prod in the Auth chunk

@@ -9,7 +9,7 @@ namespace WorkflowAutomation.Api.Connections.Providers;
 public class GoogleOAuthProvider(IOptions<GoogleOptions> options, HttpClient http) : IOAuthProvider
 {
     private readonly GoogleOptions _options = options.Value;
-    private const string Scope = "openid email https://www.googleapis.com/auth/calendar.events.readonly";
+    private const string Scope = "openid email https://www.googleapis.com/auth/calendar.events";
     private const string AuthorizeUrl = "https://accounts.google.com/o/oauth2/v2/auth";
     private const string TokenUrl = "https://oauth2.googleapis.com/token";
 

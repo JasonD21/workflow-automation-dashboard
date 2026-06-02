@@ -12,4 +12,5 @@ public class AutomationRun
     public string? ActionResultSummary { get; set; }      // jsonb
     public string? ErrorMessage { get; set; }
     public int? DurationMs { get; set; }
+    public bool IsTest { get; set; }
 }

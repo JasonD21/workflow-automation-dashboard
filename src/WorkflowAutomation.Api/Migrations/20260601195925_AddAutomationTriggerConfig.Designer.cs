@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using WorkflowAutomation.Api.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using WorkflowAutomation.Api.Infrastructure.Persistence;
 namespace WorkflowAutomation.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260601195925_AddAutomationTriggerConfig")]
+    partial class AddAutomationTriggerConfig
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -266,9 +269,6 @@ namespace WorkflowAutomation.Api.Migrations
                     b.Property<string>("IdempotencyKey")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
-
-                    b.Property<bool>("IsTest")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("Status")
                         .IsRequired()

@@ -51,6 +51,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(x => x.ActionType).HasMaxLength(64);
             e.Property(x => x.FilterConfig).HasColumnType("jsonb");
             e.Property(x => x.ActionConfig).HasColumnType("jsonb");
+            e.Property(x => x.TriggerConfig).HasColumnType("jsonb");
             e.HasQueryFilter(x => !x.IsDeleted);
             e.HasIndex(x => x.UserId);
             e.HasIndex(x => x.TriggerConnectionId);
