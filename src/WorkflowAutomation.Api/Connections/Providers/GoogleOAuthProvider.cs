@@ -12,7 +12,7 @@ public class GoogleOAuthProvider(IOptions<GoogleOptions> options, HttpClient htt
     private const string Scope = "openid email https://www.googleapis.com/auth/calendar.events";
     private const string AuthorizeUrl = "https://accounts.google.com/o/oauth2/v2/auth";
     private const string TokenUrl = "https://oauth2.googleapis.com/token";
-
+    public bool SupportsRefresh => true;
     public Provider Provider => Provider.GoogleCalendar;
 
     public string BuildAuthorizeUrl(string state, string redirectUri)
@@ -63,6 +63,24 @@ public class GoogleOAuthProvider(IOptions<GoogleOptions> options, HttpClient htt
             DisplayName: email,
             GrantedScopes: token.Scope
         );
+    }
+
+    public async Task<RefreshResult> RefreshAsync(string refreshToken, CancellationToken ct = default)
+    {
+        using var resp = await http.PostAsync(TokenUrl, new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["grant_type"] = "refresh_token",
+            ["refresh_token"] = refreshToken,
+            ["client_id"] = _options.ClientId,
+            ["client_secret"] = _options.ClientSecret
+        }), ct);
+        resp.EnsureSuccessStatusCode();   // 400 invalid_grant on the 7-day death → throws → caller marks NeedsReconnect
+
+        var token = await resp.Content.ReadFromJsonAsync<GoogleTokenResponse>(ct)
+            ?? throw new InvalidOperationException("Google refresh response was empty.");
+
+        return new RefreshResult(token.AccessToken, null,   // Google keeps the same refresh token
+            DateTimeOffset.UtcNow.AddSeconds(token.ExpiresIn), null);
     }
 
     private record GoogleTokenResponse

@@ -13,7 +13,7 @@ public class QboOAuthProvider(IOptions<QboOptions> options, HttpClient http) : I
     private const string Scope = "com.intuit.quickbooks.accounting";
     private const string AuthorizeUrl = "https://appcenter.intuit.com/connect/oauth2";
     private const string TokenUrl = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer";
-
+    public bool SupportsRefresh => true;
     public Provider Provider => Provider.QuickBooks;
 
     public string BuildAuthorizeUrl(string state, string redirectUri)
@@ -58,6 +58,28 @@ public class QboOAuthProvider(IOptions<QboOptions> options, HttpClient http) : I
             DisplayName: $"QuickBooks (Company {realmId})",
             GrantedScopes: Scope
         );
+    }
+
+    public async Task<RefreshResult> RefreshAsync(string refreshToken, CancellationToken ct = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, TokenUrl);
+        var basic = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_options.ClientId}:{_options.ClientSecret}"));
+        request.Headers.Authorization = new AuthenticationHeaderValue("Basic", basic);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["grant_type"] = "refresh_token",
+            ["refresh_token"] = refreshToken
+        });
+
+        using var resp = await http.SendAsync(request, ct);
+        resp.EnsureSuccessStatusCode();
+        var token = await resp.Content.ReadFromJsonAsync<QboTokenResponse>(ct)
+            ?? throw new InvalidOperationException("QuickBooks refresh response was empty.");
+
+        var now = DateTimeOffset.UtcNow;
+        return new RefreshResult(token.AccessToken, token.RefreshToken,
+            now.AddSeconds(token.ExpiresIn), now.AddSeconds(token.RefreshTokenExpiresIn));
     }
 
     private record QboTokenResponse

@@ -9,8 +9,10 @@ using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using WorkflowAutomation.Api.Automations;
 using WorkflowAutomation.Api.Automations.Execution;
+using WorkflowAutomation.Api.Automations.Triggers;
 using WorkflowAutomation.Api.Connections;
 using WorkflowAutomation.Api.Connections.Providers;
+using WorkflowAutomation.Api.Connections.Webhooks;
 using WorkflowAutomation.Api.Identity;
 using WorkflowAutomation.Api.Infrastructure;
 using WorkflowAutomation.Api.Infrastructure.Email;
@@ -66,6 +68,8 @@ builder.Services.AddHttpClient<IOAuthProvider, GoogleOAuthProvider>();
 builder.Services.AddHttpClient<IActionExecutor, SlackPostMessageExecutor>();
 builder.Services.AddHttpClient<IEmailSender, ResendEmailSender>();
 builder.Services.AddHttpClient<IActionExecutor, GoogleCreateEventExecutor>();
+builder.Services.AddHttpClient<IQboClient, QboClient>();
+builder.Services.AddHttpClient<IGoogleCalendarClient, GoogleCalendarClient>();
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IOAuthProviderResolver, OAuthProviderResolver>();
@@ -75,6 +79,12 @@ builder.Services.AddScoped<IActionExecutorResolver, ActionExecutorResolver>();
 builder.Services.AddScoped<IConnectionTokenAccessor, ConnectionTokenAccessor>();
 builder.Services.AddScoped<IAutomationRunner, AutomationRunner>();
 builder.Services.AddScoped<IActionExecutor, EmailSendExecutor>();
+builder.Services.AddScoped<ITriggerProcessor, TriggerProcessor>();
+builder.Services.AddScoped<ProcessTriggerJob>();
+builder.Services.AddScoped<IConnectionRefresher, ConnectionRefresher>();
+builder.Services.AddScoped<TokenRefreshSweep>();
+builder.Services.AddScoped<QboEntityChangeJob>();
+builder.Services.AddScoped<CalendarPollJob>();
 
 builder.Services.AddSingleton<ITokenProtector, TokenProtector>();
 builder.Services.AddSingleton<IOAuthStateService, OAuthStateService>();
@@ -93,10 +103,16 @@ using (var scope = app.Services.CreateScope())
     scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
 }
 
+app.Services.GetRequiredService<IRecurringJobManager>()
+    .AddOrUpdate<TokenRefreshSweep>("token-refresh-sweep", j => j.RunAsync(), "*/15 * * * *");
+app.Services.GetRequiredService<IRecurringJobManager>()
+    .AddOrUpdate<CalendarPollJob>("calendar-poll", j => j.RunAsync(), "*/5 * * * *");
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
+    app.MapDevTriggerEndpoints();
 }
 
 app.UseHttpsRedirection();
@@ -107,6 +123,8 @@ app.MapConnectionEndpoints();
 app.MapCatalogEndpoints();
 app.MapAutomationEndpoints();
 app.MapRunEndpoints();
+app.MapSlackWebhook();
+app.MapQboWebhook();
 
 app.MapHealthChecks("/health");
 app.MapHangfireDashboard("/hangfire", new DashboardOptions  // localhost-only by default; we secure it for prod in the Auth chunk

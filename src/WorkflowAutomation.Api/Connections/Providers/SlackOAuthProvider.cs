@@ -12,6 +12,8 @@ public class SlackOAuthProvider(IOptions<SlackOptions> options, HttpClient http)
 
     public Provider Provider => Provider.Slack;
 
+    public bool SupportsRefresh => false;
+
     public string BuildAuthorizeUrl(string state, string redirectUri)
     {
         var query = new Dictionary<string, string?>
@@ -49,6 +51,8 @@ public class SlackOAuthProvider(IOptions<SlackOptions> options, HttpClient http)
             DisplayName: payload.Team.Name,
             GrantedScopes: payload.Scope);
     }
+
+    public Task<RefreshResult> RefreshAsync(string refreshToken, CancellationToken ct = default) => throw new NotSupportedException("Slack bot tokens do not expire.");
 
     private record SlackOAuthResponse
     {
