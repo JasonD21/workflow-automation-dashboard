@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using Hangfire;
 using Hangfire.PostgreSql;
@@ -17,6 +18,7 @@ using WorkflowAutomation.Api.Identity;
 using WorkflowAutomation.Api.Infrastructure;
 using WorkflowAutomation.Api.Infrastructure.Email;
 using WorkflowAutomation.Api.Infrastructure.Persistence;
+using WorkflowAutomation.Api.Reporting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -70,6 +72,7 @@ builder.Services.AddHttpClient<IEmailSender, ResendEmailSender>();
 builder.Services.AddHttpClient<IActionExecutor, GoogleCreateEventExecutor>();
 builder.Services.AddHttpClient<IQboClient, QboClient>();
 builder.Services.AddHttpClient<IGoogleCalendarClient, GoogleCalendarClient>();
+builder.Services.AddHttpClient<ISlackClient, SlackClient>();
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IOAuthProviderResolver, OAuthProviderResolver>();
@@ -85,10 +88,16 @@ builder.Services.AddScoped<IConnectionRefresher, ConnectionRefresher>();
 builder.Services.AddScoped<TokenRefreshSweep>();
 builder.Services.AddScoped<QboEntityChangeJob>();
 builder.Services.AddScoped<CalendarPollJob>();
+builder.Services.AddScoped<IReportScheduleService, ReportScheduleService>();
+builder.Services.AddScoped<IReportGenerator, ReportGenerator>();   // stub for now
+builder.Services.AddScoped<GenerateReportJob>();
+builder.Services.AddScoped<IReportBuilder, ReportBuilder>();
 
 builder.Services.AddSingleton<ITokenProtector, TokenProtector>();
 builder.Services.AddSingleton<IOAuthStateService, OAuthStateService>();
 builder.Services.AddSingleton<ITemplateRenderer, TemplateRenderer>();
+builder.Services.AddSingleton<IReportScheduler, ReportScheduler>();
+builder.Services.AddSingleton<IReportHtmlRenderer, ReportHtmlRenderer>();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -101,6 +110,11 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
+    var sp = scope.ServiceProvider;
+    var dbx = sp.GetRequiredService<AppDbContext>();
+    var schedule = sp.GetRequiredService<IReportScheduler>();
+    foreach (var s in await dbx.ReportSchedules.Where(s => s.IsEnabled).ToListAsync())
+        schedule.Sync(s);
 }
 
 app.Services.GetRequiredService<IRecurringJobManager>()
@@ -113,6 +127,13 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.MapScalarApiReference();
     app.MapDevTriggerEndpoints();
+    app.MapGet("/api/dev/report-preview", async (ClaimsPrincipal u, IReportBuilder builder, CancellationToken ct) =>
+    {
+        var end = DateTimeOffset.UtcNow;
+        var data = await builder.BuildAsync(u.GetUserId(),
+            ["QuickBooks", "GoogleCalendar", "Slack"], end.AddDays(-7), end, ct);
+        return Results.Ok(data);
+    }).RequireAuthorization();
 }
 
 app.UseHttpsRedirection();
@@ -125,6 +146,7 @@ app.MapAutomationEndpoints();
 app.MapRunEndpoints();
 app.MapSlackWebhook();
 app.MapQboWebhook();
+app.MapReportEndpoints();
 
 app.MapHealthChecks("/health");
 app.MapHangfireDashboard("/hangfire", new DashboardOptions  // localhost-only by default; we secure it for prod in the Auth chunk

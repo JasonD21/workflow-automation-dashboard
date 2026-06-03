@@ -25,6 +25,7 @@ public record CalendarSyncResult(
 public interface IGoogleCalendarClient
 {
     Task<CalendarSyncResult> ListEventsAsync(Connection connection, string? syncToken, CancellationToken ct);
+    Task<IReadOnlyList<GoogleCalendarEvent>> ListEventsInRangeAsync(Connection connection, DateTimeOffset from, DateTimeOffset to, CancellationToken ct);
 }
 
 public class GoogleCalendarClient(HttpClient http, IConnectionTokenAccessor tokens) : IGoogleCalendarClient
@@ -65,6 +66,31 @@ public class GoogleCalendarClient(HttpClient http, IConnectionTokenAccessor toke
         while (pageToken is not null);
 
         return new(events, nextSyncToken, false);
+    }
+
+    public async Task<IReadOnlyList<GoogleCalendarEvent>> ListEventsInRangeAsync(Connection connection, DateTimeOffset from, DateTimeOffset to, CancellationToken ct)
+    {
+        var accessToken = await tokens.GetAccessTokenAsync(connection.Id, ct);
+        if (accessToken is null) return [];
+
+        var query = new Dictionary<string, string?>
+        {
+            ["singleEvents"] = "true",
+            ["orderBy"] = "startTime",
+            ["timeMin"] = from.ToString("o"),
+            ["timeMax"] = to.ToString("o"),
+            ["maxResults"] = "250"
+        };
+        using var request = new HttpRequestMessage(HttpMethod.Get, QueryHelpers.AddQueryString(Base, query));
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        using var resp = await http.SendAsync(request, ct);
+        if (!resp.IsSuccessStatusCode) return [];
+
+        var doc = await resp.Content.ReadFromJsonAsync<JsonElement>(ct);
+        var events = new List<GoogleCalendarEvent>();
+        if (doc.TryGetProperty("items", out var items))
+            foreach (var item in items.EnumerateArray()) events.Add(Parse(item));
+        return events;
     }
 
     private static GoogleCalendarEvent Parse(JsonElement e)
