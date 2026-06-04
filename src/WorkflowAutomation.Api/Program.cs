@@ -14,6 +14,7 @@ using WorkflowAutomation.Api.Automations.Triggers;
 using WorkflowAutomation.Api.Connections;
 using WorkflowAutomation.Api.Connections.Providers;
 using WorkflowAutomation.Api.Connections.Webhooks;
+using WorkflowAutomation.Api.Dashboard;
 using WorkflowAutomation.Api.Identity;
 using WorkflowAutomation.Api.Infrastructure;
 using WorkflowAutomation.Api.Infrastructure.Email;
@@ -26,6 +27,14 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("Connection string 'Default' not found.");
 
 builder.Services.AddOpenApi(o => o.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
+
+const string SpaCors = "spa";
+builder.Services.AddCors(o => o.AddPolicy(SpaCors, p =>
+    p.WithOrigins("http://localhost:4200")
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials())
+);
 
 builder.Services.AddDbContext<AppDbContext>(o => o.UseNpgsql(connectionString));
 builder.Services.AddIdentityCore<ApplicationUser>().AddRoles<IdentityRole<Guid>>().AddEntityFrameworkStores<AppDbContext>();
@@ -137,6 +146,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors(SpaCors);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapAuthEndpoints();
@@ -147,6 +157,7 @@ app.MapRunEndpoints();
 app.MapSlackWebhook();
 app.MapQboWebhook();
 app.MapReportEndpoints();
+app.MapDashboardEndpoints();
 
 app.MapHealthChecks("/health");
 app.MapHangfireDashboard("/hangfire", new DashboardOptions  // localhost-only by default; we secure it for prod in the Auth chunk
