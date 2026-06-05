@@ -10,15 +10,18 @@ import { ReportsService } from './reports.service';
 import { ScheduleDialogComponent } from './schedule-dialog.component';
 import { ReportViewerComponent } from './report-viewer.component';
 import { ReportSchedule, GeneratedReportSummary, SaveReportSchedule } from '../core/models';
+import { AuthService } from '../core/auth.service';
 
 @Component({
   standalone: true,
   imports: [DatePipe, MatCardModule, MatButtonModule, MatIconModule, MatSlideToggleModule],
   template: ` <div class="head">
       <h1>Reports</h1>
-      <button mat-flat-button color="primary" (click)="openCreate()">
-        <mat-icon>add</mat-icon> New schedule
-      </button>
+      @if (!auth.isDemo()) {
+        <button mat-flat-button color="primary" (click)="openCreate()">
+          <mat-icon>add</mat-icon> New schedule
+        </button>
+      }
     </div>
 
     @for (s of schedules(); track s.id) {
@@ -37,12 +40,16 @@ import { ReportSchedule, GeneratedReportSummary, SaveReportSchedule } from '../c
             </div>
           </div>
           <div class="ctrls">
-            <mat-slide-toggle [checked]="s.isEnabled" (change)="toggle(s, $event.checked)" />
+            @if (!auth.isDemo()) {
+              <mat-slide-toggle [checked]="s.isEnabled" (change)="toggle(s, $event.checked)" />
+            }
             <button mat-stroked-button (click)="generate(s)">
               <mat-icon>send</mat-icon> Generate now
             </button>
-            <button mat-icon-button (click)="openEdit(s)"><mat-icon>edit</mat-icon></button>
-            <button mat-icon-button (click)="remove(s)"><mat-icon>delete</mat-icon></button>
+            @if (!auth.isDemo()) {
+              <button mat-icon-button (click)="openEdit(s)"><mat-icon>edit</mat-icon></button>
+              <button mat-icon-button (click)="remove(s)"><mat-icon>delete</mat-icon></button>
+            }
           </div>
         </div>
       </mat-card>
@@ -152,7 +159,7 @@ export class ReportsComponent implements OnInit {
   private svc = inject(ReportsService);
   private dialog = inject(MatDialog);
   private snack = inject(MatSnackBar);
-
+  auth = inject(AuthService);
   schedules = signal<ReportSchedule[]>([]);
   reports = signal<GeneratedReportSummary[]>([]);
 

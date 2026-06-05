@@ -13,6 +13,7 @@ export class AuthService {
   readonly accessToken = signal<string | null>(null);
   readonly user = signal<UserDto | null>(null);
   readonly isAuthenticated = computed(() => this.accessToken() !== null);
+  readonly isDemo = computed(() => this.user()?.isDemo ?? false);
 
   private refreshInFlight$: Observable<string> | null = null;
 

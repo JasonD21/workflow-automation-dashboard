@@ -44,7 +44,15 @@ import { AuthService } from '../core/auth.service';
           }
         </mat-nav-list>
       </mat-sidenav>
-      <mat-sidenav-content class="content"><router-outlet /></mat-sidenav-content>
+      <mat-sidenav-content class="content">
+        @if (auth.isDemo()) {
+          <div class="demo-banner">
+            Demo mode — you're exploring a sample account. Changes are read-only, but Test run and
+            Generate now work live.
+          </div>
+        }
+        <router-outlet />
+      </mat-sidenav-content>
     </mat-sidenav-container>`,
   styles: [
     `
@@ -70,6 +78,15 @@ import { AuthService } from '../core/auth.service';
       .nav {
         width: 220px;
         border-right: 1px solid #eee;
+      }
+      .demo-banner {
+        background: #fff3e0;
+        border: 1px solid #ffcc80;
+        color: #6d4c00;
+        padding: 10px 14px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        font-size: 14px;
       }
       .active {
         background: rgba(63, 81, 181, 0.08);

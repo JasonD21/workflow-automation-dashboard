@@ -7,7 +7,7 @@ namespace WorkflowAutomation.Api.Identity;
 public record RegisterRequest(string Email, string Password, string? DisplayName);
 public record LoginRequest(string Email, string Password);
 public record AuthResponse(string AccessToken, DateTimeOffset ExpiresAtUtc);
-public record MeResponse(Guid Id, string Email, string? DisplayName, string TimeZone);
+public record MeResponse(Guid Id, string Email, string? DisplayName, string TimeZone, bool IsDemo);
 
 public static class AuthEndpoints
 {
@@ -95,7 +95,7 @@ public static class AuthEndpoints
         var user = await users.FindByIdAsync(principal.GetUserId().ToString());
         return user is null
             ? Results.Unauthorized()
-            : Results.Ok(new MeResponse(user.Id, user.Email!, user.DisplayName, user.TimeZone));
+            : Results.Ok(new MeResponse(user.Id, user.Email!, user.DisplayName, user.TimeZone, user.IsDemo));
     }
 
     private static async Task<IResult> DemoLogin(UserManager<ApplicationUser> users, ITokenService tokens, IOptions<JwtOptions> jwt,

@@ -10,6 +10,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { AutomationsService } from './automations.service';
 import { CatalogService } from './catalog.service';
 import { Automation } from '../core/models';
+import { AuthService } from '../core/auth.service';
 
 @Component({
   standalone: true,
@@ -23,9 +24,11 @@ import { Automation } from '../core/models';
   ],
   template: ` <div class="head">
       <h1>Automations</h1>
-      <a mat-flat-button color="primary" routerLink="/automations/new"
-        ><mat-icon>add</mat-icon> New automation</a
-      >
+      @if (!auth.isDemo()) {
+        <a mat-flat-button color="primary" routerLink="/automations/new"
+          ><mat-icon>add</mat-icon> New automation</a
+        >
+      }
     </div>
 
     @if (loading()) {
@@ -49,16 +52,21 @@ import { Automation } from '../core/models';
               </div>
             </div>
             <div class="ctrls">
-              <mat-slide-toggle [checked]="a.isEnabled" (change)="toggle(a, $event.checked)" />
+              <mat-slide-toggle
+                [checked]="a.isEnabled"
+                (change)="toggle(a, $event.checked)"
+                [disabled]="auth.isDemo()"
+              />
               <button mat-icon-button title="Test run" (click)="test(a)">
                 <mat-icon>play_arrow</mat-icon>
               </button>
-              <a mat-icon-button title="Edit" [routerLink]="['/automations', a.id, 'edit']"
-                ><mat-icon>edit</mat-icon></a
-              >
-              <button mat-icon-button title="Delete" (click)="remove(a)">
-                <mat-icon>delete</mat-icon>
-              </button>
+              <!-- always shown -->
+              @if (!auth.isDemo()) {
+                <a mat-icon-button [routerLink]="['/automations', a.id, 'edit']"
+                  ><mat-icon>edit</mat-icon></a
+                >
+                <button mat-icon-button (click)="remove(a)"><mat-icon>delete</mat-icon></button>
+              }
             </div>
           </div>
         </mat-card>
@@ -132,6 +140,7 @@ export class AutomationsListComponent implements OnInit {
   private svc = inject(AutomationsService);
   private catalog = inject(CatalogService);
   private snack = inject(MatSnackBar);
+  auth = inject(AuthService);
 
   automations = signal<Automation[]>([]);
   loading = signal(true);

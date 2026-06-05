@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ConnectionsService } from './connections.service';
 import { Connection } from '../core/models';
+import { AuthService } from '../core/auth.service';
 
 @Component({
   standalone: true,
@@ -35,15 +36,25 @@ import { Connection } from '../core/models';
             <p class="sub">{{ conn.displayName }}</p>
             <div class="actions">
               @if (conn.status !== 'Active') {
-                <button mat-flat-button color="primary" (click)="connect(p.key)">Reconnect</button>
+                @if (!auth.isDemo()) {
+                  <button mat-flat-button color="primary" (click)="connect(p.key)">
+                    Reconnect
+                  </button>
+                }
               }
-              <button mat-stroked-button color="warn" (click)="disconnect(conn)">Disconnect</button>
+              @if (!auth.isDemo()) {
+                <button mat-stroked-button color="warn" (click)="disconnect(conn)">
+                  Disconnect
+                </button>
+              }
             </div>
           } @else {
             <p class="sub muted">Not connected</p>
-            <button mat-flat-button color="primary" (click)="connect(p.key)">
-              <mat-icon>add_link</mat-icon> Connect
-            </button>
+            @if (!auth.isDemo()) {
+              <button mat-flat-button color="primary" (click)="connect(p.key)">
+                <mat-icon>add_link</mat-icon> Connect
+              </button>
+            }
           }
         </mat-card>
       }
@@ -100,7 +111,7 @@ export class ConnectionsComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private snack = inject(MatSnackBar);
-
+  auth = inject(AuthService);
   connections = signal<Connection[]>([]);
   providers = [
     { key: 'Slack', label: 'Slack', icon: 'forum' },

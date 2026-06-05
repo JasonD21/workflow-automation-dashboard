@@ -20,6 +20,7 @@ using WorkflowAutomation.Api.Infrastructure;
 using WorkflowAutomation.Api.Infrastructure.Email;
 using WorkflowAutomation.Api.Infrastructure.Persistence;
 using WorkflowAutomation.Api.Reporting;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,12 +29,20 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
 
 builder.Services.AddOpenApi(o => o.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
 
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
+
 const string SpaCors = "spa";
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? ["http://localhost:4200"];
 builder.Services.AddCors(o => o.AddPolicy(SpaCors, p =>
-    p.WithOrigins("http://localhost:4200")
+    p.WithOrigins(corsOrigins)
         .AllowAnyHeader()
         .AllowAnyMethod()
-        .AllowCredentials())
+        .AllowCredentials()
+    )
 );
 
 builder.Services.AddDbContext<AppDbContext>(o => o.UseNpgsql(connectionString));
@@ -73,6 +82,15 @@ builder.Services.Configure<QboOptions>(builder.Configuration.GetSection(QboOptio
 builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection(GoogleOptions.SectionName));
 builder.Services.Configure<ResendOptions>(builder.Configuration.GetSection(ResendOptions.SectionName));
 
+// Configure forwarded headers options
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // Render's proxy IPs are dynamic – don't use KnownNetworks/KnownProxies
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddHttpClient<IOAuthProvider, SlackOAuthProvider>();
 builder.Services.AddHttpClient<IOAuthProvider, QboOAuthProvider>();
 builder.Services.AddHttpClient<IOAuthProvider, GoogleOAuthProvider>();
@@ -98,9 +116,10 @@ builder.Services.AddScoped<TokenRefreshSweep>();
 builder.Services.AddScoped<QboEntityChangeJob>();
 builder.Services.AddScoped<CalendarPollJob>();
 builder.Services.AddScoped<IReportScheduleService, ReportScheduleService>();
-builder.Services.AddScoped<IReportGenerator, ReportGenerator>();   // stub for now
+builder.Services.AddScoped<IReportGenerator, ReportGenerator>();
 builder.Services.AddScoped<GenerateReportJob>();
 builder.Services.AddScoped<IReportBuilder, ReportBuilder>();
+builder.Services.AddScoped<DemoSeeder>();
 
 builder.Services.AddSingleton<ITokenProtector, TokenProtector>();
 builder.Services.AddSingleton<IOAuthStateService, OAuthStateService>();
@@ -122,8 +141,11 @@ using (var scope = app.Services.CreateScope())
     var sp = scope.ServiceProvider;
     var dbx = sp.GetRequiredService<AppDbContext>();
     var schedule = sp.GetRequiredService<IReportScheduler>();
+
     foreach (var s in await dbx.ReportSchedules.Where(s => s.IsEnabled).ToListAsync())
         schedule.Sync(s);
+
+    await scope.ServiceProvider.GetRequiredService<DemoSeeder>().SeedAsync();
 }
 
 app.Services.GetRequiredService<IRecurringJobManager>()
@@ -145,10 +167,32 @@ if (app.Environment.IsDevelopment())
     }).RequireAuthorization();
 }
 
+app.UseForwardedHeaders();
+
 app.UseHttpsRedirection();
 app.UseCors(SpaCors);
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.Use(async (ctx, next) =>
+{
+    if (ctx.User.Identity?.IsAuthenticated == true
+        && ctx.User.FindFirst("demo")?.Value == "true"
+        && !HttpMethods.IsGet(ctx.Request.Method))
+    {
+        var path = ctx.Request.Path.Value ?? "";
+        var allowed = path.EndsWith("/test") || path.EndsWith("/generate")
+            || path.StartsWith("/api/auth");
+        if (!allowed)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await ctx.Response.WriteAsJsonAsync(new { error = "Demo mode is read-only." });
+            return;
+        }
+    }
+    await next();
+});
+
 app.MapAuthEndpoints();
 app.MapConnectionEndpoints();
 app.MapCatalogEndpoints();

@@ -8,6 +8,7 @@ export interface UserDto {
   email: string;
   displayName?: string;
   timeZone?: string;
+  isDemo: boolean;
 }
 
 export interface ConnectionBrief {
