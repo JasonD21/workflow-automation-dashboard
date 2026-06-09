@@ -1,0 +1,10 @@
+name: heartbeat
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -fsS --retry 3 https://workflow-automation-dashboard-hhho.onrender.com/health
