@@ -1,3 +1,3 @@
 export const environment = {
-  apiBaseUrl: '/api',
+  apiBaseUrl: 'https://workflow-automation-dashboard-hhho.onrender.com/api',
 };
