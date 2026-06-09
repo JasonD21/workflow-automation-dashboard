@@ -76,15 +76,15 @@ flowchart LR
 
 **Why it's shaped this way.** The free hosting budget allows one always-on process, so Hangfire runs inside the API rather than as a separate worker, and an external heartbeat pings `/health` every ~10 minutes to keep the single service warm (and the demo instant on click). Triggers arrive by **signature-verified webhook** where the provider supports it reliably (Slack, QuickBooks) and by **scheduled poll** where it doesn't (Google Calendar, using a stored sync token).
 
-| Layer | Choice |
-|---|---|
-| Frontend | Angular (standalone components, signals) + Angular Material → Cloudflare Pages |
-| Backend | ASP.NET Core (.NET 10), EF Core, Minimal APIs grouped by domain |
-| Background jobs | Hangfire (in-process), state in Postgres |
-| Database | Neon Postgres |
-| Auth | ASP.NET Core Identity + JWT; OAuth 2.0 per provider |
-| Email | Resend |
-| Hosting | Cloudflare Pages (web) · Render free web service (API) · GitHub Actions (heartbeat) |
+| Layer           | Choice                                                                              |
+| --------------- | ----------------------------------------------------------------------------------- |
+| Frontend        | Angular (standalone components, signals) + Angular Material → Cloudflare Pages      |
+| Backend         | ASP.NET Core (.NET 10), EF Core, Minimal APIs grouped by domain                     |
+| Background jobs | Hangfire (in-process), state in Postgres                                            |
+| Database        | Neon Postgres                                                                       |
+| Auth            | ASP.NET Core Identity + JWT; OAuth 2.0 per provider                                 |
+| Email           | Resend                                                                              |
+| Hosting         | Cloudflare Pages (web) · Render free web service (API) · GitHub Actions (heartbeat) |
 
 ---
 
@@ -98,7 +98,7 @@ flowchart LR
 
 - **Cross-origin auth without a custom domain.** Frontend and API are on different origins, so the access token is held in memory by the SPA and the refresh token in an `HttpOnly`, `SameSite=None` cookie scoped to the auth endpoints — the long-lived secret is never reachable from JavaScript.
 
-- **The Google testing-mode reality, handled honestly.** Google's calendar scope requires app verification, and unverified test-mode authorizations expire weekly. Rather than hide this, the app detects the expiry, flags the connection as *needs reconnect*, disables its dependent automations, and surfaces a reconnect prompt — exactly what a mature production app does. The always-on public demo leans on the stable-token providers so nothing decays.
+- **The Google testing-mode reality, handled honestly.** Google's calendar scope requires app verification, and unverified test-mode authorizations expire weekly. Rather than hide this, the app detects the expiry, flags the connection as _needs reconnect_, disables its dependent automations, and surfaces a reconnect prompt — exactly what a mature production app does. The always-on public demo leans on the stable-token providers so nothing decays.
 
 ---
 
@@ -157,7 +157,7 @@ docs/design.md     full design & scope document
 Built by **Jason Davids**, a full-stack developer based in Johannesburg, South Africa. This is one of a set of portfolio projects exploring production-grade integration, automation, and deployment patterns end to end.
 
 - GitHub: [github.com/JasonD21](https://github.com/JasonD21)
-- LinkedIn: `<your LinkedIn URL>`
+- LinkedIn: [linkedin.com/in/jason-davids-09aa201b0](https://www.linkedin.com/in/jason-davids-09aa201b0/)
 
 ---
 
