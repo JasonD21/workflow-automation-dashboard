@@ -26,6 +26,15 @@ export class AuthService {
       );
   }
 
+  demoLogin() {
+    return this.http
+      .post<AuthResponse>(`${this.api}/auth/demo-login`, {}, { withCredentials: true })
+      .pipe(
+        tap((r) => this.accessToken.set(r.accessToken)),
+        switchMap(() => this.loadUser()),
+      );
+  }
+
   register(email: string, password: string, displayName: string) {
     return this.http
       .post<AuthResponse>(

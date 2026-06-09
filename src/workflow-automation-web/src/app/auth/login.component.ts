@@ -37,10 +37,19 @@ import { AuthService } from '../core/auth.service';
         </button>
       </form>
       <p>No account? <a routerLink="/register">Create one</a></p>
+      <div class="divider">or</div>
+      <button mat-stroked-button type="button" (click)="demo()" [disabled]="loading()">
+        Explore the demo
+      </button>
     </mat-card>
   </div>`,
   styles: [
     `
+      .divider {
+        text-align: center;
+        color: #999;
+        margin: 8px 0;
+      }
       .auth-wrap {
         display: flex;
         justify-content: center;
@@ -76,6 +85,18 @@ export class LoginComponent {
     email: ['', [Validators.required, Validators.email]],
     password: ['', Validators.required],
   });
+
+  demo() {
+    this.loading.set(true);
+    this.error.set(null);
+    this.auth.demoLogin().subscribe({
+      next: () => this.router.navigate(['/dashboard']),
+      error: () => {
+        this.error.set('Demo is unavailable right now.');
+        this.loading.set(false);
+      },
+    });
+  }
 
   submit() {
     if (this.form.invalid) return;
