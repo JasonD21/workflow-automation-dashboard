@@ -160,3 +160,7 @@ Built by **Jason Davids**, a full-stack developer based in Cape Town, South Afri
 - LinkedIn: [linkedin.com/in/jason-davids-09aa201b0](https://www.linkedin.com/in/jason-davids-09aa201b0/)
 
 ---
+
+## License
+
+MIT
