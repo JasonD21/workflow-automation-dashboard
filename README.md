@@ -160,7 +160,3 @@ Built by **Jason Davids**, a full-stack developer based in Johannesburg, South A
 - LinkedIn: [linkedin.com/in/jason-davids-09aa201b0](https://www.linkedin.com/in/jason-davids-09aa201b0/)
 
 ---
-
-## License
-
-© Jason Davids. All rights reserved. This code is published for portfolio and evaluation purposes; it is not licensed for reuse.
