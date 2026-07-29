@@ -154,7 +154,7 @@ docs/design.md     full design & scope document
 
 ## About
 
-Built by **Jason Davids**, a full-stack developer based in Johannesburg, South Africa. This is one of a set of portfolio projects exploring production-grade integration, automation, and deployment patterns end to end.
+Built by **Jason Davids**, a full-stack developer based in Cape Town, South Africa. This is one of a set of portfolio projects exploring production-grade integration, automation, and deployment patterns end to end.
 
 - GitHub: [github.com/JasonD21](https://github.com/JasonD21)
 - LinkedIn: [linkedin.com/in/jason-davids-09aa201b0](https://www.linkedin.com/in/jason-davids-09aa201b0/)
